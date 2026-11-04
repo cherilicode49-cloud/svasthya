@@ -260,3 +260,12 @@ DARWINBOX_COOKIE = (
     f"pbqBeYWPUn={pb_key}; "
     f"session={session}"
 )
+
+DARWINBOX_HR_REPORT_EMAILS = [
+    'trishali.jadhav@houseofhiranandani.com',
+    'sandesh.chalke@houseofhiranandani.com',
+]
+
+DARWINBOX_HR_REPORT_CC_EMAILS = [
+    'wellness@vakare.in',
+]
