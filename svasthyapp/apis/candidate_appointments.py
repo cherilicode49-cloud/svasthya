@@ -339,7 +339,7 @@ def send_candidate_appointment_confirmation_email(appointment, custom_time_slot=
                 body=htmlgen,
                 from_email=getattr(settings, 'EMAIL_HOST_USER', 'wellness@vakare.in'),
                 to=[recipient_email],
-                cc=['wellness@vakare.in'],
+                cc=['wellness@vakare.in', 'trishali.jadhav@houseofhiranandani.com','sandesh.chalke@houseofhiranandani.com'],
             )
 
             email.content_subtype = "html"
@@ -781,7 +781,6 @@ def darwinbox_candidate_appointment_cancel_done(request):
                     darwinbox_ok = False
 
                 if darwinbox_ok:
-                    send_candidate_report_upload_email(appointment, request)
                     res = {
                         'statuscode': 200,
                         'status': 'true',
@@ -835,17 +834,11 @@ def darwinbox_candidate_appointment_cancel_done(request):
 def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
     """
     Triggers Pre-Employment Health Check-up Report notification email to HR upon report upload.
-    Primary recipients: trishali.jadhav@houseofhiranandani.com, sandesh.chalke@houseofhiranandani.com
-    CC: wellness@vakare.in (and candidate recruiter if available)
-    Attaches the uploaded report file directly to the email.
+    Recipient defaults to ['hr@vakare.in'] and supports multiple emails.
     """
     try:
-        import mimetypes
-
-        hr_emails = [
-            'trishali.jadhav@houseofhiranandani.com',
-            'sandesh.chalke@houseofhiranandani.com',
-        ]
+        hr_emails = ['rushyandhan.s@houseofhiranandani.com']
+        # hr_emails = ['wellness@vakare.in']
         if recipient_list:
             if isinstance(recipient_list, list):
                 hr_emails.extend(recipient_list)
@@ -860,23 +853,7 @@ def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
 
         hr_emails = list(dict.fromkeys(hr_emails))
 
-        cc_emails = ['wellness@vakare.in']
-        configured_cc = getattr(settings, 'DARWINBOX_HR_REPORT_CC_EMAILS', None)
-        if configured_cc:
-            if isinstance(configured_cc, list):
-                cc_emails.extend(configured_cc)
-            elif isinstance(configured_cc, str):
-                cc_emails.extend([x.strip() for x in configured_cc.split(',') if x.strip()])
-
         emp_obj = appt.hoh_employee
-        if emp_obj and emp_obj.recruiter_email:
-            recruiter_mail = str(emp_obj.recruiter_email).strip()
-            if recruiter_mail and '@' in recruiter_mail:
-                cc_emails.append(recruiter_mail)
-
-        # Ensure no duplicates between TO and CC
-        cc_emails = [x for x in dict.fromkeys(cc_emails) if x not in hr_emails]
-
         employee_name = f"{emp_obj.first_name or ''} {emp_obj.last_name or ''}".strip() if emp_obj else "Candidate"
         if not employee_name:
             employee_name = "Candidate"
@@ -899,6 +876,14 @@ def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
 
         subject = f"Pre-Employment Health Check-up Report - {employee_name}"
         htmlgen = get_template("pre_employment_report_upload.html").render(context)
+        # send_mail(
+        #     subject,
+        #     f"{employee_name}'s health check-up report dated {appointment_date} has been successfully uploaded. View report: {report_link}",
+        #     getattr(settings, 'EMAIL_HOST_USER', 'wellness@vakare.in'),
+        #     hr_emails, cc=['wellness@vakare.in'] ,
+        #     fail_silently=False,
+        #     html_message=htmlgen
+        # )
 
         email = EmailMessage(
             subject=subject,
@@ -909,43 +894,11 @@ def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
                 'wellness@vakare.in'
             ),
             to=hr_emails,
-            cc=cc_emails,
+            cc=['wellness@vakare.in', 'trishali.jadhav@houseofhiranandani.com','sandesh.chalke@houseofhiranandani.com'],
         )
 
         email.content_subtype = "html"
-
-        # Attach the report file if present
-        if appt.report:
-            try:
-                attached = False
-                # Try attaching by filesystem path first
-                if hasattr(appt.report, 'path') and os.path.exists(appt.report.path):
-                    mimetype, _ = mimetypes.guess_type(appt.report.path)
-                    email.attach_file(appt.report.path, mimetype=mimetype or 'application/pdf')
-                    attached = True
-                elif appt.report.name:
-                    media_path = os.path.join(getattr(settings, 'MEDIA_ROOT', ''), str(appt.report.name))
-                    if os.path.exists(media_path):
-                        mimetype, _ = mimetypes.guess_type(media_path)
-                        email.attach_file(media_path, mimetype=mimetype or 'application/pdf')
-                        attached = True
-
-                # Fallback to reading file bytes
-                if not attached:
-                    report_file_name = os.path.basename(appt.report.name)
-                    appt.report.open('rb')
-                    file_content = appt.report.read()
-                    appt.report.close()
-                    mimetype, _ = mimetypes.guess_type(report_file_name)
-                    email.attach(report_file_name, file_content, mimetype or 'application/pdf')
-                    attached = True
-
-                print(f"Report attached successfully to email for {employee_name}")
-            except Exception as att_err:
-                print(f"Error attaching report to email for candidate {employee_name}: {str(att_err)}")
-
         email.send(fail_silently=False)
-        print(f"Report email successfully sent for {employee_name} to {hr_emails} (CC: {cc_emails})")
 
     except Exception as mail_err:
         print("Error triggering report upload email to HR:", str(mail_err))
