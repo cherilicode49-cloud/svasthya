@@ -27,3 +27,12 @@ desktop.ini
 .vscode/
 .idea/
 
+# Django Migrations
+migrations/
+*/migrations/
+**/migrations/
+
+# Django Settings / Sensitive config
+settings.py
+*/settings.py
+**/settings.py
