@@ -2,7 +2,9 @@ import os
 import io
 import csv
 import json
+import zipfile
 import requests
+from requests.auth import HTTPBasicAuth
 from datetime import datetime, date
 from django.conf import settings
 from django.http import HttpResponse
@@ -516,21 +518,11 @@ def darwinbox_import_data(request):
 
 def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=None, fitness_status=None):
     """
-    Submits candidate Pre-Employment Health Checkup status to Darwinbox Import API.
-    Endpoint: https://hoh.darwinbox.in/darwinbox/import-data/
-    Auth: OAuth Bearer Token in headers & api_key in payload
-    Allowed Fitness Status values for 'a6aa003de51453':
-      - 'Process Initiated'
-      - 'Fit'
-      - 'Fit with Recommendation'
-      - 'Temporarily Unfit'
-    Payload:
-      - api_key: settings.DARWINBOX_IMPORT_API_KEY
-      - import_id: 'employeesdata' (fixed)
-      - group_company: Dynamic (from request / candidate hoh_employee.company / default 'Roma Builders Private Limited')
-      - import_data: [{'user_id': '<candidate_id>', 'a6aa003de51453': '<fitness_status>'}]
+    Submits candidate Pre-Employment Health Checkup status, report file (ZIP),
+    and appointment data (report date, appointment date, report URL) to Darwinbox.
+    Endpoint: settings.DARWINBOX_IMPORT_URL
     """
-    darwinbox_url = getattr(settings, 'DARWINBOX_IMPORT_URL', 'https://hoh.darwinbox.in/darwinbox/import-data/')
+    darwinbox_url = getattr(settings, 'DARWINBOX_IMPORT_URL', 'https://hoh.darwinbox.in/importapi/importdata')
     api_key = getattr(settings, 'DARWINBOX_IMPORT_API_KEY', getattr(settings, 'DARWINBOX_API_KEY', os.environ.get('DARWINBOX_IMPORT_API_KEY', os.environ.get('DARWINBOX_API_KEY', ''))))
 
     if not isinstance(appointments_list, (list, tuple)):
@@ -560,6 +552,11 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
     company_buckets = {}
     total_candidate_ids = []
 
+    # In-memory ZIP buffer to package candidate report PDFs
+    zip_buffer = io.BytesIO()
+    pdf_names = []
+    zip_file = zipfile.ZipFile(zip_buffer, mode='w', compression=zipfile.ZIP_DEFLATED)
+
     for appt in appointments_list:
         if not appt:
             continue
@@ -567,6 +564,10 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
         user_id = None
         candidate_company = group_company
         candidate_fitness = fitness_status
+        report_file_bytes = None
+        report_date_val = None
+        appointment_date_val = None
+        report_url_val = None
 
         if isinstance(appt, models.DarwinboxCandidateAppointment):
             hoh_emp = appt.hoh_employee
@@ -577,12 +578,53 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
             else:
                 user_id = str(appt.id)
 
+            report_date_val = appt.report_date
+            appointment_date_val = (
+                appt.confirm_appointment_date or
+                appt.date_of_appointment or
+                appt.appointment_date_1
+            )
+
+            if appt.report:
+                try:
+                    if hasattr(appt.report, 'path') and os.path.exists(appt.report.path):
+                        with open(appt.report.path, 'rb') as f:
+                            report_file_bytes = f.read()
+                    else:
+                        appt.report.open('rb')
+                        report_file_bytes = appt.report.read()
+                        appt.report.close()
+                except Exception as file_read_err:
+                    print(f"Could not read report file for appointment {appt.id}: {file_read_err}")
+
+                try:
+                    raw_url = str(appt.report.url) if hasattr(appt.report, 'url') else str(appt.report)
+                    site_media = getattr(settings, 'SITE_MEDIA_BASE_URL', '').rstrip('/')
+                    if raw_url.startswith('http://') or raw_url.startswith('https://'):
+                        report_url_val = raw_url
+                    elif site_media:
+                        report_url_val = f"{site_media}/{raw_url.lstrip('/')}"
+                    else:
+                        report_url_val = raw_url
+                except Exception:
+                    pass
+
         elif isinstance(appt, dict):
             user_id = appt.get('user_id') or appt.get('unique_user_id') or appt.get('employee_id')
             if not candidate_company:
                 candidate_company = appt.get('group_company') or appt.get('company')
             if not candidate_fitness:
                 candidate_fitness = appt.get('fitness_status') or appt.get('fitness') or appt.get('a6aa003de51453')
+            report_date_val = appt.get('report_date')
+            appointment_date_val = appt.get('appointment_date') or appt.get('date_of_appointment') or appt.get('confirm_appointment_date')
+            report_url_val = appt.get('report_url')
+
+            file_obj = appt.get('file_bytes') or appt.get('report')
+            if hasattr(file_obj, 'read'):
+                report_file_bytes = file_obj.read()
+            elif isinstance(file_obj, bytes):
+                report_file_bytes = file_obj
+
         elif isinstance(appt, (int, str)):
             user_id = str(appt)
 
@@ -595,11 +637,33 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
             user_id = str(user_id).strip()
             if candidate_company not in company_buckets:
                 company_buckets[candidate_company] = []
-            company_buckets[candidate_company].append({
+
+            item_data = {
                 "user_id": user_id,
-                "a6aa003de51453": resolved_fitness
-            })
+                "a6aa003de51453": resolved_fitness,
+            }
+            if not report_date_val:
+                report_date_val = datetime.now().strftime('%Y-%m-%d')
+            item_data["report_date"] = str(report_date_val)
+
+            if appointment_date_val:
+                item_data["appointment_date"] = str(appointment_date_val)
+                item_data["checkup_date"] = str(appointment_date_val)
+
+            if report_url_val:
+                item_data["report_url"] = str(report_url_val)
+                item_data["report"] = str(report_url_val)
+
+            company_buckets[candidate_company].append(item_data)
             total_candidate_ids.append(user_id)
+
+            # Add to ZIP if report file exists
+            if report_file_bytes:
+                pdf_filename = f"{user_id}__PreEmpHealthRepor.pdf"
+                zip_file.writestr(pdf_filename, report_file_bytes)
+                pdf_names.append(pdf_filename)
+
+    zip_file.close()
 
     if not total_candidate_ids:
         return {
@@ -622,6 +686,7 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
         all_responses = []
         overall_success = True
 
+        # STEP 1: Sync candidate data & fitness status (JSON payload)
         for comp, items in company_buckets.items():
             payload = {
                 "api_key": api_key,
@@ -644,8 +709,8 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
                     'raw_response': response.text
                 }
 
-            print(f'Darwinbox Candidate Status Sync ({comp}) Status:', response.status_code)
-            print(f'Darwinbox Candidate Status Sync ({comp}) Response:', response_data)
+            print(f'Darwinbox Candidate Status & Data Sync ({comp}) Status:', response.status_code)
+            print(f'Darwinbox Candidate Status & Data Sync ({comp}) Response:', response_data)
 
             is_item_success = response.status_code in [200, 201] and (
                 isinstance(response_data, dict) and response_data.get('status') in [1, '1', True, 'true', 200]
@@ -671,6 +736,51 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
             else:
                 err_msg = 'Darwinbox sync failed.'
 
+        # STEP 2: Upload Report PDF ZIP Archive to Darwinbox File Import API if reports exist
+        zip_response_data = None
+        if pdf_names:
+            try:
+                zip_buffer.seek(0)
+                zip_bytes = zip_buffer.getvalue()
+                zip_name = f"pre_emp_reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+
+                zip_payload = {
+                    'file_type': 'Pre Employment Health Checkup Report',
+                    'api_key': api_key,
+                }
+                zip_files = {
+                    'file': (zip_name, zip_bytes, 'application/zip')
+                }
+                zip_headers = {
+                    "Authorization": f"Bearer {access_token}",
+                }
+                if getattr(settings, 'DARWINBOX_COOKIE', None):
+                    zip_headers['Cookie'] = settings.DARWINBOX_COOKIE
+
+                basic_user = getattr(settings, 'DARWINBOX_BASIC_AUTH_USER', getattr(settings, 'DARWINBOX_USER_ID', os.environ.get('DARWINBOX_BASIC_AUTH_USER', '')))
+                basic_pwd = getattr(settings, 'DARWINBOX_BASIC_AUTH_PASSWORD', getattr(settings, 'DARWINBOX_PASSWORD', os.environ.get('DARWINBOX_BASIC_AUTH_PASSWORD', '')))
+                zip_auth = HTTPBasicAuth(basic_user, basic_pwd) if (basic_user and basic_pwd) else None
+
+                print(f"[Darwinbox ZIP] Uploading {zip_name} ({len(zip_bytes)} bytes) with {len(pdf_names)} PDF(s) to {darwinbox_url}")
+                zip_resp = requests.post(
+                    darwinbox_url,
+                    data=zip_payload,
+                    files=zip_files,
+                    headers=zip_headers,
+                    auth=zip_auth,
+                    timeout=60,
+                )
+                try:
+                    zip_response_data = zip_resp.json()
+                except ValueError:
+                    zip_response_data = {'raw_response': zip_resp.text}
+
+                print(f"[Darwinbox ZIP] HTTP Status: {zip_resp.status_code}")
+                print(f"[Darwinbox ZIP] Response   : {zip_response_data}")
+            except Exception as zip_err:
+                print(f"[Darwinbox ZIP] Exception during report ZIP upload: {zip_err}")
+                zip_response_data = {'error': str(zip_err)}
+
         return {
             'status': overall_success,
             'status_code': 200 if overall_success else 400,
@@ -679,6 +789,9 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
             'synced_candidates_count': len(total_candidate_ids) if overall_success else 0,
             'candidate_user_ids': total_candidate_ids,
             'group_company': list(company_buckets.keys())[0] if len(company_buckets) == 1 else list(company_buckets.keys()),
+            'report_files_uploaded': len(pdf_names),
+            'zip_file_names': pdf_names,
+            'darwinbox_zip_response': zip_response_data,
         }
 
     except requests.exceptions.Timeout:
