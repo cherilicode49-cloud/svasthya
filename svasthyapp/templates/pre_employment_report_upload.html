@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pre-Employment Health Check-up Report - {{ employee_name }}</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .email-container {
+      max-width: 680px;
+      margin: 25px auto;
+      background-color: #ffffff;
+      padding: 35px 30px;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #64ce46;
+      padding-bottom: 18px;
+      margin-bottom: 25px;
+    }
+
+    .header img {
+      height: 55px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      color: #2b7a1c;
+      font-size: 20px;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    p {
+      line-height: 1.65;
+      margin: 12px 0;
+      font-size: 14.5px;
+    }
+
+    .button-container {
+      text-align: center;
+      margin: 25px 0;
+    }
+
+    .btn {
+      display: inline-block;
+      background-color: #64ce46;
+      color: #ffffff !important;
+      padding: 12px 24px;
+      font-size: 14.5px;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+
+    .report-box {
+      background-color: #f1f5f9;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin: 18px 0;
+      word-break: break-all;
+      border: 1px solid #e2e8f0;
+    }
+
+    .report-box a {
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer {
+      margin-top: 28px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 18px;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .system-msg {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 600px) {
+      .email-container {
+        padding: 20px 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://wellness360api.svasthyalife.co.in/media/image/logo.png" alt="Svasthya Logo" />
+    </div>
+
+    <p>Dear {{ hr_name|default:"HR Team" }},</p>
+
+    <p><strong>{{ employee_name }}</strong>'s health check-up report dated <strong>{{ appointment_date }}</strong> has been successfully uploaded. Please find attached report file.</p>
+
+    {% if report_link %}
+    <div class="button-container">
+      <a href="{{ report_link }}" target="_blank" class="btn">Download / View Report</a>
+    </div>
+
+    <div class="report-box">
+      <p style="margin: 0; font-size: 13.5px;"><strong>Report Link:</strong> <a href="{{ report_link }}" target="_blank">{{ report_link }}</a></p>
+    </div>
+    {% endif %}
+
+    <p>If you have any questions, feel free to contact us.</p>
+
+    <div class="footer">
+      <p style="margin-bottom: 4px;">Best regards,</p>
+      <p style="margin: 0; font-weight: bold; color: #1e293b;">Svasthya Team</p>
+      <p style="margin: 2px 0; color: #475569;">Vakare Management Consultants LLP</p>
+      <p style="margin: 4px 0 0 0; color: #1e293b;">Sheetal Ambre – <a href="tel:9076103125" style="color: #0284c7; text-decoration: none;">9076103125</a></p>
+    </div>
+
+    <p class="system-msg">This is a system generated email, please do not respond to this email.</p>
+  </div>
+</body>
+
+</html>

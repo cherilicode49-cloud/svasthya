@@ -1,0 +1,28 @@
+# Environments
+env/
+venv/
+ENV/
+
+# Backup directory
+bk/
+
+# Python / Django cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.sqlite3
+*.db
+
+# Logs
+*.log
+
+# Operating System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors & IDEs
+.vscode/
+.idea/

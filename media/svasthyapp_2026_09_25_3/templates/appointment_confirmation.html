@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health Check-up Appointment Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .email-container {
+      max-width: 700px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #64ce46;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .header img {
+      height: 60px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      color: #64ce46;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+    h2 {
+      color: #64ce46;
+      margin-top: 30px;
+    }
+    p {
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+    ul {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+    li {
+      margin-bottom: 6px;
+    }
+    .contact {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .footer {
+      text-align: center;
+      color: #555;
+      font-size: 13px;
+      margin-top: 30px;
+    }
+    @media (max-width: 600px) {
+      .email-container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://svasthyalife.co.in/assets/svasthya-D1r0AJMd.png" alt="Svasthya Logo" />
+    </div>
+
+    <p>Dear {{ patient_name }},</p>
+
+    <p><strong>Warm Greetings!</strong></p>
+
+    <p>We hope you're doing well. We’re pleased to confirm your upcoming health check-up appointment. Please find the details below:</p>
+
+    <h2>Appointment Details:</h2>
+    <ul>
+      <li><strong>Name:</strong> {{ patient_name }}</li>
+      <li><strong>Date:</strong> {{ appointment_date }}</li>
+      <li><strong>Location:</strong> {{ center_name }} – {{ center_address }}</li>
+      <li><strong>Package:</strong> {{ package_name }}</li>
+    </ul>
+
+    <h2>Important Reminders for Your Visit:</h2>
+    <ol>
+      <li><strong>Rescheduling:</strong> Please note that rescheduling within 48 hours is not allowed.</li>
+      <li><strong>Fasting:</strong> Avoid food and drinks (except water) for 10–12 hours before the test.</li>
+      <li><strong>Medication:</strong> Continue your prescribed medications unless directed otherwise.</li>
+      <li><strong>Dietary Restrictions:</strong> Do not consume cigarettes, alcohol, coffee, tea, tobacco, or gum for at least 12 hours before the test.</li>
+      <li><strong>Medical Conditions:</strong> Inform your doctor if you have diabetes or cardiac issues.</li>
+      <li><strong>Pregnancy:</strong> If pregnant or suspecting pregnancy, avoid X-ray tests.</li>
+      <li><strong>Urine Sample:</strong> Bring a urine sample in a sterile container if possible.</li>
+      <li><strong>Mammography:</strong> Avoid lotion, deodorant, or perfume on your breasts or underarms.</li>
+      <li><strong>ECG:</strong> Men may need to shave chest hair for an effective ECG.</li>
+      <li><strong>Ultrasonography:</strong> Drink water 30 minutes before your scan for a full bladder and bring any prior reports or prescriptions.</li>
+      <li><strong>Dress Code:</strong> Please avoid metallic accessories or jewelry.</li>
+      <li><strong>Documents:</strong> Bring a government-issued ID and a copy of this email.</li>
+    </ol>
+
+    <h2>Report Collection:</h2>
+    <p>
+      • Your test reports will be shared via email within <strong>3–4 working days</strong> after completion.<br>
+      • Reports will be available within <strong>2–3 working days</strong> for home sample collections.
+    </p>
+
+    <h2>Time Commitment:</h2>
+    <p>
+      Tests are comprehensive and may take <strong>3–6 hours</strong> depending on the package and waiting times.
+      Rest assured, we will do our best to make your experience smooth and efficient.
+    </p>
+
+    <div class="contact">
+      <p><strong>For assistance or queries, please contact:</strong></p>
+      <p>📞 <strong>Ms. Priyanka Halde:</strong> 9930174395<br>
+         📞 <strong>Ms. Sheetal Ambre:</strong> 9076103125<br>
+         ✉️ <strong>Email:</strong> <a href="mailto:wellness@vakare.in">wellness@vakare.in</a></p>
+    </div>
+
+    <p>Your health and well-being matter to us, and we look forward to welcoming you to the center for your check-up.</p>
+
+    <p><strong>Best regards,</strong><br>Vakare Management Consultants LLP</p>
+
+  </div>
+</body>
+</html>

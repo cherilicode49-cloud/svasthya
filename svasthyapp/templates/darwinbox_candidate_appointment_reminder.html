@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reminder: Tomorrow's Pre-Employment Health Check-up Appointment</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .email-container {
+      max-width: 650px;
+      margin: 25px auto;
+      background-color: #ffffff;
+      padding: 35px 30px;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #64ce46;
+      padding-bottom: 18px;
+      margin-bottom: 25px;
+    }
+
+    .header img {
+      height: 55px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      color: #2b7a1c;
+      font-size: 19px;
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    p {
+      line-height: 1.65;
+      margin: 12px 0;
+      font-size: 14.5px;
+    }
+
+    .reminder-badge {
+      display: inline-block;
+      background-color: #e0f2fe;
+      color: #0369a1;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .details-card {
+      background-color: #f8fafc;
+      border-left: 4px solid #64ce46;
+      border-radius: 6px;
+      padding: 18px 20px;
+      margin: 20px 0;
+    }
+
+    .detail-item {
+      margin: 10px 0;
+      font-size: 14.5px;
+      line-height: 1.5;
+    }
+
+    .detail-item strong {
+      color: #1e293b;
+    }
+
+    .notice-box {
+      background-color: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 14px 18px;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #78350f;
+    }
+
+    .spoc-box {
+      background: #f1f5f9;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-top: 22px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .spoc-box p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    .spoc-box a {
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer {
+      margin-top: 28px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 18px;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .system-msg {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 600px) {
+      .email-container {
+        padding: 20px 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://wellness360api.svasthyalife.co.in/media/image/logo.png" alt="Svasthya Logo" />
+    </div>
+
+    <p>Dear {{ employee_name|default:"Employee" }},</p>
+
+    <p>This is a friendly reminder about your <strong>tomorrow’s pre-employment health check-up appointment</strong>:</p>
+
+    <div class="details-card">
+      <div class="detail-item">📅 <strong>Date:</strong> {{ appointment_date }}</div>
+      <div class="detail-item">⏰ <strong>Time:</strong> {{ appointment_time|default:"08:00 AM to 11:00 AM" }}</div>
+      <div class="detail-item">📍 <strong>Location:</strong> <strong>{{ center_name }}</strong>{% if center_address %} - {{ center_address }}{% endif %}</div>
+    </div>
+
+    <div class="notice-box">
+      ⚠️ <strong>Important:</strong> Please arrive 15 minutes early and bring any necessary documents (Government ID &amp; voucher printout/soft copy).
+    </div>
+
+    <div class="spoc-box">
+      <p><strong>For any query feel free to contact us:</strong></p>
+      <p>👤 <strong>Sheetal Ambre:</strong> <a href="tel:9076103125">9076103125</a></p>
+      <p>✉️ <strong>Email:</strong> <a href="mailto:wellness@vakare.in">wellness@vakare.in</a></p>
+    </div>
+
+    <div class="footer">
+      <p style="margin-bottom: 4px;">Best regards,</p>
+      <p style="margin: 0; font-weight: bold; color: #1e293b;">Svasthya Team</p>
+      <p style="margin: 2px 0 0 0; color: #475569;">Vakare Management Consultants LLP</p>
+    </div>
+
+    <p class="system-msg">This is a system-generated reminder email.</p>
+  </div>
+</body>
+
+</html>

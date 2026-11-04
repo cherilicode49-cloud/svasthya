@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pre-Employment Health Check-up Appointment Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f4f7f6;
+      margin: 0;
+      padding: 0;
+      color: #333333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .email-container {
+      max-width: 680px;
+      margin: 25px auto;
+      background-color: #ffffff;
+      padding: 35px 30px;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #64ce46;
+      padding-bottom: 18px;
+      margin-bottom: 25px;
+    }
+
+    .header img {
+      height: 55px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      color: #2b7a1c;
+      font-size: 20px;
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #2b7a1c;
+      font-size: 16px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      border-left: 4px solid #64ce46;
+      padding-left: 10px;
+    }
+
+    p {
+      line-height: 1.65;
+      margin: 10px 0;
+      font-size: 14.5px;
+    }
+
+    .info-card {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 18px 0;
+    }
+
+    .info-card table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .info-card td {
+      padding: 6px 4px;
+      font-size: 14.5px;
+      vertical-align: top;
+    }
+
+    .info-label {
+      font-weight: bold;
+      color: #475569;
+      width: 170px;
+    }
+
+    .info-value {
+      color: #1e293b;
+    }
+
+    ol.prerequisites {
+      padding-left: 20px;
+      margin: 12px 0;
+    }
+
+    ol.prerequisites li {
+      margin-bottom: 9px;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    ol.prerequisites li strong {
+      color: #1e293b;
+    }
+
+    .highlight-box {
+      background-color: #f0fdf4;
+      border-left: 4px solid #64ce46;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 20px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .spoc-box {
+      background: #f1f5f9;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-top: 22px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .spoc-box p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    .spoc-box a {
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer {
+      margin-top: 28px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 18px;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .system-msg {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 600px) {
+      .email-container {
+        padding: 20px 15px;
+      }
+
+      .info-card td {
+        display: block;
+        width: 100%;
+      }
+
+      .info-label {
+        padding-bottom: 2px;
+      }
+
+      .info-value {
+        padding-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://wellness360api.svasthyalife.co.in/media/image/logo.png" alt="Svasthya Logo" />
+    </div>
+
+    <p>Dear {{ employee_name|default:"Employee" }},</p>
+
+    <p><strong>Greetings!!</strong></p>
+
+    {% if is_hybrid_visit %}
+    <p>This is to inform you that <strong>House of Hiranandani</strong> has organized your Pre-Employment Health check-up (Hybrid: Home Sample Collection & Center Visit). Your appointment is confirmed as follows:</p>
+    {% elif is_home_visit %}
+    <p>This is to inform you that <strong>House of Hiranandani</strong> has organized your Pre-Employment Health check-up (At Home). Your home sample collection is confirmed for date <strong>{{ home_sample_date|default:appointment_date }}</strong>{% if home_sample_time or appointment_time %} at <strong>{{ home_sample_time|default:appointment_time }}</strong>{% endif %}.</p>
+    {% else %}
+    <p>This is to inform you that <strong>House of Hiranandani</strong> has organized the Pre-Employment Health check-up and your health check-up appointment is confirmed for date <strong>{{ appointment_date }}</strong>{% if appointment_time %} at <strong>{{ appointment_time }}</strong>{% endif %}.</p>
+    {% endif %}
+
+    <div class="info-card">
+      <table>
+        <tr>
+          <td class="info-label">Employee Name:</td>
+          <td class="info-value"><strong>{{ employee_name|default:"-" }}</strong></td>
+        </tr>
+        <tr>
+          <td class="info-label">Gender / Age:</td>
+          <td class="info-value">{{ gender_age|default:"-" }}</td>
+        </tr>
+        {% if type_of_visit %}
+        <tr>
+          <td class="info-label">Type of Visit:</td>
+          <td class="info-value"><strong>{{ type_of_visit }}</strong></td>
+        </tr>
+        {% endif %}
+
+        {% if is_hybrid_visit %}
+        <tr>
+          <td class="info-label">Home Sample Date:</td>
+          <td class="info-value"><strong>{{ home_sample_date|default:"-" }}</strong></td>
+        </tr>
+        {% if home_sample_time %}
+        <tr>
+          <td class="info-label">Home Sample Slot:</td>
+          <td class="info-value"><strong>{{ home_sample_time }}</strong></td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td class="info-label">Center Visit Date:</td>
+          <td class="info-value"><strong>{{ center_appointment_date|default:appointment_date|default:"-" }}</strong></td>
+        </tr>
+        {% if appointment_time %}
+        <tr>
+          <td class="info-label">Center Time Slot:</td>
+          <td class="info-value"><strong>{{ appointment_time }}</strong></td>
+        </tr>
+        {% endif %}
+        {% elif is_home_visit %}
+        <tr>
+          <td class="info-label">Home Sample Date:</td>
+          <td class="info-value"><strong>{{ home_sample_date|default:appointment_date|default:"-" }}</strong></td>
+        </tr>
+        {% if home_sample_time or appointment_time %}
+        <tr>
+          <td class="info-label">Time Slot:</td>
+          <td class="info-value"><strong>{{ home_sample_time|default:appointment_time }}</strong></td>
+        </tr>
+        {% endif %}
+        {% else %}
+        <tr>
+          <td class="info-label">Appointment Date:</td>
+          <td class="info-value"><strong>{{ appointment_date|default:"-" }}</strong></td>
+        </tr>
+        {% if appointment_time %}
+        <tr>
+          <td class="info-label">Time Slot:</td>
+          <td class="info-value"><strong>{{ appointment_time }}</strong></td>
+        </tr>
+        {% endif %}
+        {% endif %}
+
+        {% if package_name %}
+        <tr>
+          <td class="info-label">Package:</td>
+          <td class="info-value">{{ package_name }}</td>
+        </tr>
+        {% endif %}
+        {% if not is_home_visit and center_name %}
+        <tr>
+          <td class="info-label">Clinic Address:</td>
+          <td class="info-value"><strong>{{ center_name }}</strong>{% if center_address %}: {{ center_address }}{% endif %}</td>
+        </tr>
+        {% elif is_hybrid_visit and center_name %}
+        <tr>
+          <td class="info-label">Clinic Address:</td>
+          <td class="info-value"><strong>{{ center_name }}</strong>{% if center_address %}: {{ center_address }}{% endif %}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+
+    {% if is_home_visit %}
+    <p>Our phlebotomist will visit your registered address for the home sample collection.</p>
+    {% elif is_hybrid_visit %}
+    <p>Our phlebotomist will visit your address for home sample collection, and we request you to please visit the center for the remaining tests.</p>
+    {% else %}
+    <p>We request you to please visit the center and get the pre-employment health check-up done.</p>
+    {% endif %}
+
+    <h2>Prerequisites for Medical Test:</h2>
+    <p>Please take note of the following points before visiting the center:</p>
+    <ol class="prerequisites">
+      <li><strong>Rescheduling:</strong> Please note that rescheduling within 48 hours is not allowed.</li>
+      <li><strong>Identification:</strong> Request to carry photo Id card (Aadhar card) along with mail print or soft copy for verification at time of medical.</li>
+      <li><strong>Fasting &amp; Dietary Restrictions:</strong> Please do not consume cigarettes, alcohol, coffee or tea and tobacco prior to 12hrs of the test. (Don't eat or drink anything during the 10-12 hours before your appointment).</li>
+      <li><strong>Medicines:</strong> Take all your medicines on the day of appointment as per regular practice.</li>
+      <li><strong>Medical Conditions:</strong> Please Inform to Doctor if you are diabetic or a cardiac patient.</li>
+      <li><strong>Pregnancy:</strong> Pregnant Women or those suspecting are advised not to undergo any X-Ray test.</li>
+      <li><strong>Mammography:</strong> Avoid lotion, deodorant, or perfume on your breasts or underarms.</li>
+      <li><strong>Ultrasonography:</strong> Drink water 30 minutes before your scan for a full bladder and bring any prior reports or prescriptions.</li>
+      <li><strong>Dress Code:</strong> Please avoid metallic accessories or jewelry.</li>
+      <li><strong>Voucher:</strong> Please carry the attached voucher copy along with you.</li>
+      <li><strong>Report Delivery:</strong> Your test reports will be directly shared with HR via email within 3–4 working days after completion.</li>
+    </ol>
+
+    <h2>Time Commitment:</h2>
+    <div class="highlight-box">
+      Tests are comprehensive and may take <strong>3–6 hours</strong> depending on the package and waiting times. Rest assured, we will do our best to make your experience smooth and efficient.
+    </div>
+
+    <div class="spoc-box">
+      <p><strong>Please note below mentioned SPOC details if you have any queries or require support; we are pleased to assist you:</strong></p>
+      <p>👤 <strong>Ms. Sheetal Ambre:</strong> <a href="tel:9076103125">9076103125</a></p>
+      <p>✉️ <strong>Email:</strong> <a href="mailto:wellness@vakare.in">wellness@vakare.in</a></p>
+    </div>
+
+    <p style="margin-top: 20px;">Your health and well-being matter to us, and we look forward to welcoming you for your check-up.</p>
+
+    <div class="footer">
+      <p style="margin-bottom: 4px;">Best regards,</p>
+      <p style="margin: 0; font-weight: bold; color: #1e293b;">Svasthya Team</p>
+      <p style="margin: 2px 0 0 0; color: #475569;">Vakare Management Consultants LLP</p>
+    </div>
+
+    <p class="system-msg">This is a system-generated email. Please contact the SPOC for any assistance.</p>
+  </div>
+</body>
+
+</html>

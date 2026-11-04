@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Testimonial Rejected</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    .email-container {
+      max-width: 700px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #64ce46;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+
+    .header img {
+      height: 60px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      color: #64ce46;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      color: #64ce46;
+      margin-top: 30px;
+    }
+
+    p {
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+
+    ul {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .contact {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    .footer {
+      text-align: center;
+      color: #555;
+      font-size: 13px;
+      margin-top: 30px;
+    }
+
+    @media (max-width: 600px) {
+      .email-container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://wellness360api.svasthyalife.co.in/media/image/logo.png" alt="Svasthya Logo" />
+    </div>
+
+    <p>Dear {{ admin }},</p>
+    <p>This is to inform you that the testimonial submitted on the portal has been <strong>reviewed and could not be
+        approved </strong>at this time.</p>
+    <p>Please review the content submitted by customer.</p>
+
+    <p><strong>Thanks & regards,</strong><br>Svasthya Team</p>
+    <p style="color: red; text-align: center;">This is a system generated email, please do not respond to this email.
+    </p>
+  </div>
+</body>
+
+</html>

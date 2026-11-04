@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @font-face {
+            font-family: 'Marby Pro';
+            src: url(https://wellness360api.svasthyalife.co.in/media/invoice/MabryPro-Regular.ttf);
+
+        }
+
+        /* Apply Marby Pro to the entire document */
+        body {
+            font-family: 'Marby Pro' !important;
+        }
+    </style>
+</head>
+
+<body style="font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9;">
+
+    <div
+        style="max-width: 100%; margin: 0 auto; background-color: #fff; border-radius: 8px; padding: 30px 30px; background-image: url(https://wellness360api.svasthyalife.co.in/media/invoice/Header.png);background-repeat: no-repeat;background-size: contain;">
+
+        <!-- Header Section -->
+        <div style=" margin-bottom: 20px;display: flex;justify-content: space-between;background-size: cover;">
+            <!-- Logo Placeholder -->
+            <div style="display: inline-block;">
+                <img src="https://wellness360api.svasthyalife.co.in/media/invoice/invoice_logo.png" alt="Vakare Logo"
+                    style="box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);width: 190px;">
+            </div>
+            <div>
+                <h1 style="font-size: 24px; color: #133721; margin: 10px 0;">Vakare Management Consultants LLP</h1>
+                <p style="font-size: 14px; color: #666; margin: 5px 0;">Bharat House Bldg. Mumbai Samachar Marg, Mumbai-
+                    400001</p>
+                <p style="font-size: 14px; color: #666; margin: 5px 0;">PAN No.- AAXFV6752H / GSTIN No.:27AAXFV6752H1ZB
+                </p>
+                <p style="font-size: 14px; color: #666; margin: 5px 0;">wellness@vakare.in</p>
+                <p style="font-size: 14px; color: #666; margin: 25px 0;font-weight: 700;"> Tax Invoice Cum Receipt</p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- Invoice To Section -->
+        <div style="display: flex;z-index: 999;">
+            <div style="margin-bottom: 20px;width: 50%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white;">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;"><span
+                        style="background-color: #44922D1A;padding: 1px 3px;font-weight: bold;">Invoice To:</span></p>
+                <p style="font-size: 20px;color: #133721;padding: 0;margin: 9px 0px;"><b>{{recipient_name}}</b></p>
+                <p style="font-size: 11px; color: #666; margin: 5px 0;">{{recipient_number}}</p>
+                <p style="font-size: 11px; color: #666; margin: 5px 0;">{{recipient_email}}</p>
+                <p style="font-size: 11px; color: #666; margin: 5px 0;">{{recipient_address}}</p>
+            </div>
+
+            <!-- Center Address Section -->
+            <div
+                style="margin-bottom: 20px;width: 50%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;"><span
+                        style="background-color: #44922D1A;padding: 1px 3px;font-weight: 700;">Center Address:</span>
+                </p>
+                <p style="font-size: 20px;color: #133721;padding: 0;margin: 9px 0px;">{{center_name}}</p>
+                <p style="font-size: 11px; color: #666; margin: 5px 0;">{{center_address}}</p>
+            </div>
+        </div>
+
+        <div style="display: flex;z-index: 999;margin-bottom: 23px;margin-top: 22px;">
+            <div
+                style="margin-bottom: 20px;width: 30%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white;">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;">
+                    <span style="background-color: #44922D1A; padding: 1px 3px; font-weight: 700;">Invoice No:</span>
+                </p>
+                <p style="color: #133721; font-weight: 700;">
+                    {{invoice_id}}
+                </p>
+            
+            </div>
+
+            <!-- Center Address Section -->
+            <div style="margin-bottom: 20px;width: 30%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;">
+                    <span style="background-color: #44922D1A; padding: 1px 3px; font-weight: 700;">Invoice Date:</span>
+                </p>
+                <p style="color: #133721; font-weight: 700;">
+                    {{invoice_date}}
+                </p>
+            
+            </div>
+            <div
+                style="margin-bottom: 20px;width: 30%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;">
+                    <span style="background-color: #44922D1A; padding: 1px 3px; font-weight: 700;">Booking ID:</span>
+                </p>
+                <p style="color: #133721; font-weight: 700;">
+                    {{booking_id}}
+                </p>
+            
+            </div>
+        </div>
+
+
+        <!-- Table Section -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 0px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #000;">
+                    <th style="padding: 10px; text-align: left;">Description</th>
+                    <th style="padding: 10px; text-align: left;">Qty</th>
+                    <th style="padding: 10px; text-align: left;">HSN/SAC Code</th>
+                    <th style="padding: 10px; text-align: left;">Price</th>
+                    <th style="padding: 10px; text-align: left;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 10px;"><span style="font-weight: 700;">{{package_name}}</span>
+                        <ul>
+                            <li style="font-weight: 400;font-size: 13px;color: grey;">
+                               {{package_service}}
+                            </li>
+                        </ul>
+
+                    </td>
+                    <td style="padding: 10px;color: grey;">1</td>
+                    <td style="padding: 10px;color: grey;">998599</td>
+                    <td style="padding: 10px;color: grey;">₹ {{package_amount}}</td>
+                    <td style="padding: 10px;color: black;font-weight: bold;">₹ {{package_amount}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; color: #666;"></td>
+                    <td colspan="4"></td>
+                </tr>
+
+            </tbody>
+        </table>
+
+
+        <!-- Total Section -->
+        <div style="display: flex;justify-content: space-between;">
+            <div style="width: 50%;">
+                <p style="font-size: 14px; color: #000000; margin: 5px 0;"><strong>In words: {{amount_in_words}}</strong></p>
+            </div>
+            <div style="text-align: right; margin-bottom: 20px;width: 50%;">
+
+                <p style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between;">
+                    <span style="font-weight: bold;color: #000;">Subtotal:</span> <span> ₹ {{package_amount}}</span>
+                </p>
+                <p style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between">
+                    <span style="font-weight: bold;color: #000;">Discount <span style="color: #64CE46;">(Special
+                            Offer):</span></span>
+                    <span style="color: red;">
+                        ₹ -{{package_discount_price}}
+                    </span>
+                </p>
+                
+                
+                {% if flag %}
+                    <p style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between">
+                        <span style="font-weight: bold;color: #000;">CGST @ {{package_CGST}}%:</span>
+                        <span>
+                            ₹ {{package_CGST_amount}}
+                        </span>
+                    </p>
+                    <p style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between">
+                        <span style="font-weight: bold;color: #000;">SGST @ {{package_SGST}}%:</span>
+                        <span>
+                            ₹ {{package_SGST_amount}}
+                        </span>
+                    </p>
+                {% else %}
+                    <p style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between">
+                        <span style="font-weight: bold;color: #000;">IGST @ {{package_IGST}}%:</span>
+                        <span>
+                            ₹ {{package_IGST_amount}}
+                        </span>
+                    </p>
+                {% endif %}
+
+                <p style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between">
+                        <span style="font-weight: bold;color: #000;">Platform Charge:</span>
+                        <span>
+                            ₹ {{platform_charge}}
+                        </span>
+                </p>
+
+                <p
+                    style="font-size: 14px; color: #666; margin: 5px 0;display: flex;justify-content: space-between;border: 1px solid #64CE46;padding: 10px 10px;box-shadow: #64CE46 2px 3px 0px 1px">
+                    <span style="font-weight: bold;color: #000;">Grand Total:</span><span>
+                        ₹ {{package_offer_price}}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <div style="text-align: left; font-size: 12px; color: #000;font-weight: bold;margin-top: -50px;">
+            <p>This is a computer Generated Invoice</p>
+        </div>
+        <!-- Payment Details -->
+
+
+        <div style="margin: 20px 0;">        
+        <h4 style="font-size: 13px; color: #000000; margin-bottom: 10px; text-align: center;">
+            Payment Details
+        </h4>
+        <div style="display: flex;z-index: 999;margin-bottom: 23px;margin-top: 22px;">
+            <div
+                style="margin-bottom: 20px;width: 50%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white;">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;">
+                    <span style="background-color: #44922D1A; padding: 1px 3px; font-weight: 700;">Payment Mode:</span>
+                </p>
+                <p style="color: #133721; font-weight: 700;">
+                    {{method}}
+                </p>
+            
+            </div>
+
+            <!-- Center Address Section -->
+            <div style="margin-bottom: 20px;width: 25%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;">
+                    <span style="background-color: #44922D1A; padding: 1px 3px; font-weight: 700;">Reference No:</span>
+                </p>
+                <p style="color: #133721; font-weight: 700;">
+                    {{invoice_date}}
+                </p>
+            
+            </div>
+            <div
+                style="margin-bottom: 20px;width: 25%;padding: 0px 20px;border: 1px solid rgba(128, 128, 128, 0.274);border-radius: 5px;box-shadow: #6867674f 2px 3px 0px 1px !important;margin: 0 10px;background-color: white">
+                <p style="font-size: 13px; color: #64CE46; margin-bottom: 5px;">
+                    <span style="background-color: #44922D1A; padding: 1px 3px; font-weight: 700;">Date:</span>
+                </p>
+                <p style="color: #133721; font-weight: 700;">
+                    {{booking_id}}
+                </p>
+            
+            </div>
+        </div>
+        <div style="font-size: 13px; color: grey; margin-top: 20px; text-align: center;">
+            Thank you for your prompt payment. We value your trust in our services and look forward to serving you
+            again.
+        </div>
+    </div>
+
+        <!-- Footer -->
+
+
+    </div>
+
+</body>
+
+</html>
