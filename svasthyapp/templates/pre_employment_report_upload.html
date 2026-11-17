@@ -112,7 +112,19 @@
 
     <p>Dear {{ hr_name|default:"HR Team" }},</p>
 
-    <p><strong>{{ employee_name }}</strong>'s health check-up report dated <strong>{{ appointment_date }}</strong> has been successfully uploaded. Please find attached report file.</p>
+    <p><strong>{{ employee_name }}</strong>{% if unique_user_id %} (ID: <strong>{{ unique_user_id }}</strong>){% endif %}'s health check-up report dated <strong>{{ appointment_date }}</strong> has been successfully uploaded. Please find attached report file.</p>
+
+    <div class="report-box" style="background-color: #f8fafc;">
+      <p style="margin: 0 0 6px 0; font-size: 13.5px;"><strong>Appointment Status:</strong> {{ status|default:"Reports
+        Uploaded" }}</p>
+      {% if fitness_status %}
+      <p style="margin: 0 0 6px 0; font-size: 13.5px;"><strong>Fitness Status:</strong> <span
+          style="color: #2b7a1c; font-weight: bold;">{{ fitness_status }}</span></p>
+      {% endif %}
+      {% if remark %}
+      <p style="margin: 0; font-size: 13.5px;"><strong>Remarks:</strong> {{ remark }}</p>
+      {% endif %}
+    </div>
 
     {% if report_link %}
     <div class="button-container">
@@ -120,7 +132,8 @@
     </div>
 
     <div class="report-box">
-      <p style="margin: 0; font-size: 13.5px;"><strong>Report Link:</strong> <a href="{{ report_link }}" target="_blank">{{ report_link }}</a></p>
+      <p style="margin: 0; font-size: 13.5px;"><strong>Report Link:</strong> <a href="{{ report_link }}"
+          target="_blank">{{ report_link }}</a></p>
     </div>
     {% endif %}
 
@@ -130,7 +143,8 @@
       <p style="margin-bottom: 4px;">Best regards,</p>
       <p style="margin: 0; font-weight: bold; color: #1e293b;">Svasthya Team</p>
       <p style="margin: 2px 0; color: #475569;">Vakare Management Consultants LLP</p>
-      <p style="margin: 4px 0 0 0; color: #1e293b;">Sheetal Ambre – <a href="tel:9076103125" style="color: #0284c7; text-decoration: none;">9076103125</a></p>
+      <p style="margin: 4px 0 0 0; color: #1e293b;">Sheetal Ambre – <a href="tel:9076103125"
+          style="color: #0284c7; text-decoration: none;">9076103125</a></p>
     </div>
 
     <p class="system-msg">This is a system generated email, please do not respond to this email.</p>

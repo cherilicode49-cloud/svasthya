@@ -736,13 +736,17 @@ def darwinbox_candidate_appointment_delete(request):
 @csrf_exempt
 def darwinbox_candidate_appointment_cancel_done(request):
     if request.method == 'POST':
-        # python_data = {}
-        # for i, j in request.FILES.items():
-        #     python_data.update({i: j})
-        # for i, j in request.POST.items():
-        #     python_data.update({i: j})
+        python_data = {}
+        for i, j in request.FILES.items():
+            python_data.update({i: j})
+        for i, j in request.POST.items():
+            python_data.update({i: j})
 
-        python_data = JSONParser().parse(io.BytesIO(request.body))
+        if not python_data:
+            try:
+                python_data = JSONParser().parse(io.BytesIO(request.body))
+            except Exception:
+                python_data = {}
 
         now = datetime.now()
         current_date_data = now.strftime('%Y-%m-%d')
@@ -752,7 +756,7 @@ def darwinbox_candidate_appointment_cancel_done(request):
         status = python_data.get('status')
         fitness_status = python_data.get('fitness_status') or python_data.get('fitness') or python_data.get('a6aa003de51453')
         group_company = python_data.get('group_company')
-        report = python_data.get('report')
+        report = python_data.get('report') or python_data.get('file')
         reason = python_data.get('reason')
         remark = python_data.get('remark') or python_data.get('remarks')
         report_date = python_data.get('report_date')
@@ -781,6 +785,7 @@ def darwinbox_candidate_appointment_cancel_done(request):
                     darwinbox_ok = False
 
                 if darwinbox_ok:
+                    send_candidate_report_upload_email(appointment, request, fitness_status=fitness_status)
                     res = {
                         'statuscode': 200,
                         'status': 'true',
@@ -831,14 +836,15 @@ def darwinbox_candidate_appointment_cancel_done(request):
             return HttpResponse(json_data, content_type='application/json')
 
 
-def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
+def send_candidate_report_upload_email(appt, req=None, recipient_list=None, fitness_status=None):
     """
     Triggers Pre-Employment Health Check-up Report notification email to HR upon report upload.
-    Recipient defaults to ['hr@vakare.in'] and supports multiple emails.
+    Attaches the uploaded report file and includes candidate status / fitness status.
     """
     try:
-        hr_emails = ['rushyandhan.s@houseofhiranandani.com']
-        # hr_emails = ['wellness@vakare.in']
+        import mimetypes
+
+        hr_emails = ['trishali.jadhav@houseofhiranandani.com', 'sandesh.chalke@houseofhiranandani.com']
         if recipient_list:
             if isinstance(recipient_list, list):
                 hr_emails.extend(recipient_list)
@@ -851,7 +857,16 @@ def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
             elif isinstance(configured_emails, str):
                 hr_emails.extend([x.strip() for x in configured_emails.split(',') if x.strip()])
 
-        hr_emails = list(dict.fromkeys(hr_emails))
+        hr_emails = list(dict.fromkeys([e for e in hr_emails if e]))
+
+        cc_emails = ['wellness@vakare.in']
+        configured_cc = getattr(settings, 'DARWINBOX_HR_REPORT_CC_EMAILS', None)
+        if configured_cc:
+            if isinstance(configured_cc, list):
+                cc_emails.extend(configured_cc)
+            elif isinstance(configured_cc, str):
+                cc_emails.extend([x.strip() for x in configured_cc.split(',') if x.strip()])
+        cc_emails = [x for x in dict.fromkeys(cc_emails) if x and x not in hr_emails]
 
         emp_obj = appt.hoh_employee
         employee_name = f"{emp_obj.first_name or ''} {emp_obj.last_name or ''}".strip() if emp_obj else "Candidate"
@@ -863,27 +878,27 @@ def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
 
         report_link = ""
         if appt.report:
-            base_url = getattr(settings, 'SITE_MEDIA_BASE_URL', '')
-            report_link = f"{base_url}{appt.report}"
+            raw_report = str(appt.report)
+            if raw_report.startswith('http://') or raw_report.startswith('https://'):
+                report_link = raw_report
+            else:
+                base_url = getattr(settings, 'SITE_MEDIA_BASE_URL', '').rstrip('/')
+                report_link = f"{base_url}/{raw_report.lstrip('/')}" if base_url else raw_report
 
         context = {
             "hr_name": "HR Team",
             "employee_name": employee_name,
+            "unique_user_id": emp_obj.unique_user_id if emp_obj else "",
             "appointment_date": appointment_date,
             "report_link": report_link,
-            "company_name": company_name
+            "company_name": company_name,
+            "status": appt.status or "Reports Uploaded",
+            "fitness_status": fitness_status or "Fit",
+            "remark": appt.remark or "",
         }
 
         subject = f"Pre-Employment Health Check-up Report - {employee_name}"
         htmlgen = get_template("pre_employment_report_upload.html").render(context)
-        # send_mail(
-        #     subject,
-        #     f"{employee_name}'s health check-up report dated {appointment_date} has been successfully uploaded. View report: {report_link}",
-        #     getattr(settings, 'EMAIL_HOST_USER', 'wellness@vakare.in'),
-        #     hr_emails, cc=['wellness@vakare.in'] ,
-        #     fail_silently=False,
-        #     html_message=htmlgen
-        # )
 
         email = EmailMessage(
             subject=subject,
@@ -894,11 +909,41 @@ def send_candidate_report_upload_email(appt, req=None, recipient_list=None):
                 'wellness@vakare.in'
             ),
             to=hr_emails,
-            cc=['wellness@vakare.in', 'trishali.jadhav@houseofhiranandani.com','sandesh.chalke@houseofhiranandani.com'],
+            cc=cc_emails,
         )
 
         email.content_subtype = "html"
+
+        # Attach the uploaded report file if present
+        if appt.report:
+            try:
+                attached = False
+                if hasattr(appt.report, 'path') and os.path.exists(appt.report.path):
+                    mimetype, _ = mimetypes.guess_type(appt.report.path)
+                    email.attach_file(appt.report.path, mimetype=mimetype or 'application/pdf')
+                    attached = True
+                elif appt.report.name:
+                    media_path = os.path.join(getattr(settings, 'MEDIA_ROOT', ''), str(appt.report.name))
+                    if os.path.exists(media_path):
+                        mimetype, _ = mimetypes.guess_type(media_path)
+                        email.attach_file(media_path, mimetype=mimetype or 'application/pdf')
+                        attached = True
+
+                if not attached:
+                    report_file_name = os.path.basename(appt.report.name or 'report.pdf')
+                    appt.report.open('rb')
+                    file_content = appt.report.read()
+                    appt.report.close()
+                    mimetype, _ = mimetypes.guess_type(report_file_name)
+                    email.attach(report_file_name, file_content, mimetype or 'application/pdf')
+                    attached = True
+
+                print(f"Report attached successfully to HOH email for {employee_name}")
+            except Exception as att_err:
+                print(f"Error attaching report to HOH email for {employee_name}: {str(att_err)}")
+
         email.send(fail_silently=False)
+        print(f"HOH report email sent for {employee_name} to {hr_emails} (CC: {cc_emails})")
 
     except Exception as mail_err:
         print("Error triggering report upload email to HR:", str(mail_err))
@@ -989,7 +1034,7 @@ def darwinbox_candidate_appointment_report_upload(request):
                 if darwinbox_ok:
                     # If status = 1 then trigger email to HR for each updated appointment
                     for appt_item in updated_appointments:
-                        send_candidate_report_upload_email(appt_item, request, hr_emails_input)
+                        send_candidate_report_upload_email(appt_item, request, hr_emails_input, fitness_status=fitness_status)
 
                     serializer = DarwinboxCandidateAppointmentSerializer(updated_appointments, many=True)
                     res = {
@@ -1039,7 +1084,7 @@ def darwinbox_candidate_appointment_report_upload(request):
 
                     if darwinbox_ok:
                         # If status = 1 then trigger email to HR
-                        send_candidate_report_upload_email(appointment, request, hr_emails_input)
+                        send_candidate_report_upload_email(appointment, request, hr_emails_input, fitness_status=fitness_status)
 
                         serializer = DarwinboxCandidateAppointmentSerializer(appointment)
                         res = {
