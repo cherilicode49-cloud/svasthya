@@ -359,7 +359,9 @@ urlpatterns = [
     path('api/package_export/', package_apis.package_export, name = 'package_export'),
     path('api/center_export/', center_apis.center_export, name = 'center_export'),
     path('api/appointment_export/', appointment_apis.appointment_export, name = 'appointment_export'),
-
+    path('api/hoh_employee_export/', hoh_employee.hoh_employee_export, name = 'hoh_employee_export'),
+    path('api/hoh_candidate_appointment_export/', candidate_appointments.darwinbox_candidate_appointment_export, name = 'hoh_candidate_appointment_export'),
+    
     ### Test Category
 
     path('api/test_category_create/', masters_apis.test_category_create, name = 'test_category_create'),
@@ -385,6 +387,8 @@ urlpatterns = [
     path("api/darwinbox/report-data/", darwinbox_sync.darwinbox_report_data, name="darwinbox-report-data"),
     path("api/darwinbox/import-data/", darwinbox_sync.darwinbox_import_data, name="darwinbox-import-data"),
     path("api/all_hoh_employee_list/", hoh_employee.all_hoh_employee_list, name="all_hoh_employee_list"),
+    path("api/hoh-company-list/", hoh_employee.hoh_company_list, name="hoh_company_list"),
+    path("api/hoh_company_list/", hoh_employee.hoh_company_list, name="hoh_company_list_underscore"),
     path("api/hoh-employee-detail/", hoh_employee.get_hoh_employee_detail, name="get_hoh_employee_detail"),
     path("api/hoh_employee_detail/", hoh_employee.get_hoh_employee_detail, name="get_hoh_employee_detail_underscore"),
     path("api/hoh-employee-status-update/", hoh_employee.hoh_employee_status_update, name="hoh_employee_status_update"),
@@ -396,6 +400,8 @@ urlpatterns = [
     path('api/darwinbox/candidate-appointment-create/', candidate_appointments.darwinbox_candidate_appointment_create, name='darwinbox_candidate_appointment_create'),
     path('api/darwinbox/candidate-appointment-update/', candidate_appointments.darwinbox_candidate_appointment_update, name='darwinbox_candidate_appointment_update'),
     path('api/darwinbox/candidate-appointment-list/', candidate_appointments.all_darwinbox_candidate_appointment_list, name='all_darwinbox_candidate_appointment_list'),
+    path('api/darwinbox_candidate_appointment_list/', candidate_appointments.all_darwinbox_candidate_appointment_list, name='all_darwinbox_candidate_appointment_list_underscore'),
+    path('api/all_darwinbox_candidate_appointment_list/', candidate_appointments.all_darwinbox_candidate_appointment_list, name='all_darwinbox_candidate_appointment_list_all_prefix'),
     path('api/darwinbox/candidate-appointment-detail/', candidate_appointments.get_darwinbox_candidate_appointment_detail, name='get_darwinbox_candidate_appointment_detail'),
     path('api/darwinbox/candidate-appointment-data-check/', candidate_appointments.darwinbox_candidate_appointment_data_check, name='darwinbox_candidate_appointment_data_check'),
     path('api/darwinbox/candidate-appointment-delete/', candidate_appointments.delete_darwinbox_candidate_appointment, name='delete_darwinbox_candidate_appointment'),

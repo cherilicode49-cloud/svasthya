@@ -52,9 +52,9 @@ admin.site.register(models.IndividualAddressDetail)
 
 
 class HohEmployeeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'unique_user_id', 'first_name', 'last_name', 'company', 'status', 'recruiter_name', 'personal_mobile', 'date_of_joining')
-    list_filter = ('status', 'company', 'gender')
-    search_fields = ('unique_user_id', 'employee_id', 'first_name', 'last_name', 'personal_email', 'personal_mobile', 'recruiter_name')
+    list_display = ('id', 'unique_user_id', 'first_name', 'last_name', 'company', 'status', 'recruiter_name', 'personal_mobile', 'date_of_joining', 'created_date', 'created_at')
+    list_filter = ('status', 'company', 'gender', 'created_date')
+    search_fields = ('unique_user_id', 'employee_id', 'first_name', 'last_name', 'personal_email', 'personal_mobile', 'recruiter_name', 'created_date', 'created_at')
 
 
 admin.site.register(models.HohEmployee, HohEmployeeAdmin)

@@ -215,9 +215,21 @@ def fetch_and_process_darwinbox_report(report_id="4789d215e4aa8a", get_latest_re
                         defaults=defaults_dict
                     )
 
+                    now = datetime.now()
+                    current_date_str = now.strftime('%Y-%m-%d')
+                    created_on_row = (row.get("Created Date") or row.get("Created On") or row.get("Created At") or "").strip()
+                    record_created_date = created_on_row or current_date_str
+
                     if created:
+                        employee.created_date = record_created_date
+                        employee.created_at = current_date_str
+                        employee.save(update_fields=['created_date', 'created_at'])
                         created_count += 1
                     else:
+                        if not employee.created_date or not employee.created_at:
+                            employee.created_date = employee.created_date or record_created_date
+                            employee.created_at = employee.created_at or current_date_str
+                            employee.save(update_fields=['created_date', 'created_at'])
                         updated_count += 1
 
                 except Exception as row_error:
@@ -589,6 +601,9 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
                 appt.appointment_date_1
             )
 
+            if not candidate_fitness and getattr(appt, 'fitness_status', None):
+                candidate_fitness = appt.fitness_status
+
             if appt.report:
                 try:
                     if hasattr(appt.report, 'path') and os.path.exists(appt.report.path):
@@ -655,6 +670,8 @@ def upload_darwinbox_candidate_report_to_api(appointments_list, group_company=No
 
             item_data = {
                 "user_id": user_id,
+                "a6aa003de51453": resolved_fitness,
+                "Pre Employment Health Checkup Status": resolved_fitness,
                 "Pre Employement Health Checkup Status": resolved_fitness,
                 "status": str(candidate_status or 'Reports Uploaded'),
             }

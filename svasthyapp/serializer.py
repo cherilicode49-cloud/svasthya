@@ -804,6 +804,25 @@ class HohEmployeeSerializer(serializers.ModelSerializer):
         current_status = data.get('status')
         if not current_status or str(current_status).strip().lower() in ['', 'null', 'none']:
             data['status'] = 'Blank'
+
+        # Ensure created_date and created_at are always populated
+        c_date = (
+            data.get('created_date') or 
+            data.get('created_at') or 
+            getattr(instance, 'created_date', None) or 
+            getattr(instance, 'created_at', None) or 
+            ''
+        )
+        if not c_date:
+            try:
+                appt = instance.darwinboxcandidateappointment_set.order_by('id').first()
+                if appt and appt.created_at:
+                    c_date = str(appt.created_at).split()[0]
+            except Exception:
+                pass
+
+        data['created_date'] = c_date
+        data['created_at'] = c_date
         return data
 
 

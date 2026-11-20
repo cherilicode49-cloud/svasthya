@@ -284,7 +284,21 @@ ENDPOINT_METADATA = {
             'page_number': ('integer', 'Page number', 1, False),
             'row_size': ('integer', 'Row size per page', 10, False),
             'status': ('string', 'Filter by status (Blank, Contacted, Person Not Approachable, Pending from Employee)', '', False),
-            'search': ('string', 'Search by candidate name, user ID, recruiter, or company', '', False),
+            'company': ('string', 'Filter/Search by company name', '', False),
+            'created_date': ('string', 'Filter by created date (YYYY-MM-DD)', '', False),
+            'search': ('string', 'Search by candidate name, user ID, recruiter, company, or date', '', False),
+        }
+    },
+    'hoh_employee_export': {
+        'tag': 'HOH Employees',
+        'method': 'POST',
+        'summary': 'Export HOH Employees to Excel',
+        'description': 'Export HOH employees/candidates to an Excel (.xlsx) spreadsheet with filters.',
+        'params': {
+            'status': ('string', 'Filter by status (Blank, Contacted, Person Not Approachable, Pending from Employee)', '', False),
+            'company': ('string', 'Filter/Search by company name', '', False),
+            'created_date': ('string', 'Filter by created date (YYYY-MM-DD)', '', False),
+            'search': ('string', 'Search by candidate name, user ID, recruiter, company, or date', '', False),
         }
     },
     'hoh_employee_status_update': {
@@ -365,6 +379,24 @@ ENDPOINT_METADATA = {
             'remark': ('string', 'Staff remark', 'Confirmed', False),
             'status': ('string', 'Status: Request Received | Confirmed | Rescheduled | Cancel | Reports Uploaded', 'Confirmed', False),
             'report_date': ('string', 'Report upload date', '2026-10-12', False),
+        }
+    },
+    'darwinbox_candidate_appointment_export': {
+        'tag': 'Darwinbox Candidate Appointments',
+        'method': 'POST',
+        'summary': 'Export Candidate Appointments to Excel',
+        'description': 'Export Darwinbox candidate appointments to an Excel (.xlsx) spreadsheet with filters.',
+        'params': {
+            'employee': ('string', 'Search/Filter by employee name, user ID, or employee ID', '', False),
+            'company': ('string', 'Filter by company name', '', False),
+            'status': ('string', 'Filter by appointment status (Confirmed, Rescheduled, Cancel, Reports Uploaded)', '', False),
+            'fitness_status': ('string', 'Filter by fitness status (Fit, Fit with Recommendation, Temporarily Unfit)', '', False),
+            'confirm_appointment_date': ('string', 'Filter by appointment date (YYYY-MM-DD)', '', False),
+            'report_date': ('string', 'Filter by report date (YYYY-MM-DD)', '', False),
+            'package': ('string', 'Filter by package', '', False),
+            'center': ('string', 'Filter by diagnostic center', '', False),
+            'vendor': ('string', 'Filter by vendor', '', False),
+            'search': ('string', 'Search across candidate name, ID, user ID, company, status, etc.', '', False),
         }
     },
 

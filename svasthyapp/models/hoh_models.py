@@ -26,6 +26,8 @@ class HohEmployee(models.Model):
     recruiter_name = models.CharField(max_length=255, null=True, blank=True)
     recruiter_mobile = models.CharField(max_length=30, null=True, blank=True)
     recruiter_email = models.EmailField(null=True, blank=True)
+    created_at = models.CharField(max_length=200, verbose_name="created_at", null=True, default=None, blank=True)
+    created_date = models.CharField(max_length=200, verbose_name="created_date", null=True, default=None, blank=True)
 
     def __str__(self):
         return f"{self.unique_user_id} - {self.first_name} {self.last_name}"
@@ -59,6 +61,7 @@ class DarwinboxCandidateAppointment(models.Model):
     report_date = models.CharField(max_length=100, verbose_name="report_date", null=True, default=None, blank=True)
     report = models.FileField(upload_to='image/Report', verbose_name='report', null=True, blank=True, validators=[validators.validate_file_extension_image_and_pdf])
     status = models.CharField(max_length=200, verbose_name="status", null=True)
+    fitness_status = models.CharField(max_length=100, verbose_name="fitness_status", null=True, default=None, blank=True)
     created_at = models.CharField(max_length=200, verbose_name="created_at", null=True)
 
     def __str__(self):

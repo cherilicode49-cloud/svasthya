@@ -7,6 +7,8 @@ from datetime import datetime, date, timedelta
 from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q, Value
+from django.db.models.functions import Concat
 from django.core.mail import EmailMessage, send_mail
 from django.template.loader import get_template
 from rest_framework.parsers import JSONParser
@@ -24,6 +26,9 @@ from svasthyapp.apis.darwinbox_sync import (
     get_darwinbox_access_token,
     upload_darwinbox_candidate_report_to_api,
 )
+import openpyxl as op
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 
 # ============================================================
 # SWAGGER SCHEMAS FOR DARWINBOX & APPOINTMENT APIS
@@ -584,33 +589,526 @@ def darwinbox_candidate_appointment_update(request):
         return HttpResponse(json_data, content_type='application/json')
 
 
+candidate_appointment_list_schema = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'page_number': openapi.Schema(type=openapi.TYPE_INTEGER, description='Page number', default=1),
+        'row_size': openapi.Schema(type=openapi.TYPE_INTEGER, description='Row size per page', default=10),
+        'employee': openapi.Schema(type=openapi.TYPE_STRING, description='Search/Filter by employee (candidate name, user ID, employee ID)'),
+        'company': openapi.Schema(type=openapi.TYPE_STRING, description='Search/Filter by company name'),
+        'status': openapi.Schema(type=openapi.TYPE_STRING, description='Filter by appointment status (e.g. Confirmed, Rescheduled, Cancel, Reports Uploaded)'),
+        'fitness_status': openapi.Schema(type=openapi.TYPE_STRING, description='Filter by candidate fitness status (Fit, Fit with Recommendation, Temporarily Unfit)'),
+        'search': openapi.Schema(type=openapi.TYPE_STRING, description='General search term across employee name, ID, recruiter, company, status, etc.'),
+    }
+)
+
+
 @swagger_auto_schema(
-    methods=['get', 'post'],
-    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first).",
+    method='post',
+    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first). Supports pagination, employee search, company filter, status filter, and general search.",
+    request_body=candidate_appointment_list_schema,
+    responses={200: "List of DarwinboxCandidateAppointment records"}
+)
+@swagger_auto_schema(
+    method='get',
+    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first). Supports pagination, employee search, company filter, status filter, and general search.",
+    manual_parameters=[
+        openapi.Parameter('page_number', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER, default=1),
+        openapi.Parameter('row_size', openapi.IN_QUERY, description="Row size per page", type=openapi.TYPE_INTEGER, default=10),
+        openapi.Parameter('employee', openapi.IN_QUERY, description="Search/Filter by employee name or ID", type=openapi.TYPE_STRING),
+        openapi.Parameter('company', openapi.IN_QUERY, description="Filter/Search by company name", type=openapi.TYPE_STRING),
+        openapi.Parameter('status', openapi.IN_QUERY, description="Filter by appointment status", type=openapi.TYPE_STRING),
+        openapi.Parameter('fitness_status', openapi.IN_QUERY, description="Filter by fitness status", type=openapi.TYPE_STRING),
+        openapi.Parameter('search', openapi.IN_QUERY, description="Search term", type=openapi.TYPE_STRING),
+    ],
+    responses={200: "List of DarwinboxCandidateAppointment records"}
+)
+@api_view(['GET', 'POST'])
+@csrf_exempt
+def parse_candidate_appointment_request_params(request):
+    """Extract and sanitize query/body parameters from DRF request."""
+    python_data = {}
+
+    req_data = getattr(request, 'data', None)
+    if req_data:
+        if hasattr(req_data, 'dict'):
+            python_data.update(req_data.dict())
+        elif isinstance(req_data, dict):
+            python_data.update(req_data)
+
+    if not python_data and request.body:
+        try:
+            parsed = JSONParser().parse(io.BytesIO(request.body))
+            if isinstance(parsed, dict):
+                python_data.update(parsed)
+        except Exception:
+            pass
+
+    if not python_data and request.method == 'POST':
+        if hasattr(request.POST, 'dict'):
+            python_data.update(request.POST.dict())
+        else:
+            for k, v in request.POST.items():
+                python_data[k] = v
+
+    query_source = getattr(request, 'query_params', None) or request.GET
+    if query_source:
+        if hasattr(query_source, 'dict'):
+            for k, v in query_source.dict().items():
+                if k not in python_data or python_data[k] in [None, '', 'null', 'undefined']:
+                    python_data[k] = v
+        else:
+            for k, v in query_source.items():
+                if k not in python_data or python_data[k] in [None, '', 'null', 'undefined']:
+                    python_data[k] = v
+
+    for k, v in list(python_data.items()):
+        if isinstance(v, (list, tuple)) and len(v) == 1 and not isinstance(v[0], dict):
+            python_data[k] = v[0]
+
+    return python_data
+
+
+def build_candidate_appointment_queryset(python_data):
+    """Build filtered DarwinboxCandidateAppointment queryset according to search and column filter criteria."""
+    qs = models.DarwinboxCandidateAppointment.objects.all()
+
+    # 1. EMPLOYEE / CANDIDATE SEARCH / FILTER
+    employee_filter = (
+        python_data.get('employee') or 
+        python_data.get('employee_name') or 
+        python_data.get('candidate') or 
+        python_data.get('candidate_name') or 
+        python_data.get('hoh_employee') or 
+        python_data.get('name') or
+        python_data.get('first_name') or
+        python_data.get('last_name') or
+        python_data.get('unique_user_id') or 
+        python_data.get('employee_id') or
+        python_data.get('user_id')
+    )
+    if employee_filter not in [None, '', 'null', 'undefined', 'All', 'all', 'ALL']:
+        emp_val = str(employee_filter).strip()
+        if emp_val and emp_val.lower() not in ['all', 'null', 'undefined', '']:
+            emp_q = (
+                models.Q(hoh_employee__first_name__icontains=emp_val) |
+                models.Q(hoh_employee__last_name__icontains=emp_val) |
+                models.Q(hoh_employee__unique_user_id__icontains=emp_val) |
+                models.Q(hoh_employee__employee_id__icontains=emp_val) |
+                models.Q(hoh_employee__personal_mobile__icontains=emp_val) |
+                models.Q(hoh_employee__personal_email__icontains=emp_val)
+            )
+            if emp_val.isdigit():
+                emp_q |= models.Q(hoh_employee_id=int(emp_val))
+
+            words = emp_val.split()
+            if len(words) > 1:
+                multi_q = models.Q()
+                for w in words:
+                    multi_q &= (
+                        models.Q(hoh_employee__first_name__icontains=w) |
+                        models.Q(hoh_employee__last_name__icontains=w) |
+                        models.Q(hoh_employee__unique_user_id__icontains=w) |
+                        models.Q(hoh_employee__employee_id__icontains=w)
+                    )
+                emp_q |= multi_q
+
+            qs = qs.filter(emp_q)
+
+    # 2. COMPANY SEARCH / FILTER
+    company_filter = (
+        python_data.get('company') or 
+        python_data.get('company_name') or 
+        python_data.get('corporate_name') or 
+        python_data.get('group_company') or
+        python_data.get('corporate')
+    )
+    if company_filter not in [None, '', 'null', 'undefined', 'All', 'all', 'ALL']:
+        if isinstance(company_filter, (list, tuple)):
+            clean_companies = [
+                str(c).strip() for c in company_filter 
+                if str(c).strip() and str(c).strip().lower() not in ['all', 'null', 'undefined', '']
+            ]
+            if clean_companies:
+                comp_q = models.Q()
+                for c in clean_companies:
+                    comp_q |= models.Q(hoh_employee__company__icontains=c)
+                qs = qs.filter(comp_q)
+        elif str(company_filter).strip():
+            c_val = str(company_filter).strip()
+            if c_val.lower() not in ['all', 'null', 'undefined', '']:
+                qs = qs.filter(hoh_employee__company__icontains=c_val)
+
+    # 3. APPOINTMENT STATUS FILTER
+    status_filter = python_data.get('status')
+    if status_filter not in [None, '', 'null', 'undefined', 'All', 'all', 'ALL']:
+        s_val = str(status_filter).strip()
+        if s_val.lower() not in ['all', 'none', 'null', '']:
+            s_norm = s_val.replace('_', ' ')
+            qs = qs.filter(models.Q(status__iexact=s_val) | models.Q(status__iexact=s_norm))
+
+    # 4. FITNESS STATUS FILTER
+    fitness_filter = python_data.get('fitness_status') or python_data.get('fitness')
+    if fitness_filter not in [None, '', 'null', 'undefined', 'All', 'all', 'ALL']:
+        f_val = str(fitness_filter).strip()
+        if f_val.lower() not in ['all', 'none', 'null', '']:
+            if hasattr(models.DarwinboxCandidateAppointment, 'fitness_status'):
+                f_norm = f_val.replace('_', ' ')
+                qs = qs.filter(models.Q(fitness_status__iexact=f_val) | models.Q(fitness_status__iexact=f_norm))
+
+    # 5. APPOINTMENT DATE FILTER
+    appt_date = (
+        python_data.get('confirm_appointment_date') or 
+        python_data.get('date_of_appointment') or 
+        python_data.get('appointment_date') or
+        python_data.get('appointment_date_1') or
+        python_data.get('date')
+    )
+    if appt_date not in [None, '', 'null', 'undefined', 'All', 'all']:
+        ad_str = str(appt_date).strip()
+        if ad_str and ad_str.lower() not in ['all', 'null', 'undefined', '']:
+            qs = qs.filter(
+                models.Q(confirm_appointment_date__icontains=ad_str) |
+                models.Q(date_of_appointment__icontains=ad_str) |
+                models.Q(appointment_date_1__icontains=ad_str) |
+                models.Q(appointment_date_2__icontains=ad_str)
+            )
+
+    # 6. REPORT DATE FILTER
+    report_date_filter = python_data.get('report_date')
+    if report_date_filter not in [None, '', 'null', 'undefined', 'All', 'all']:
+        rd_str = str(report_date_filter).strip()
+        if rd_str and rd_str.lower() not in ['all', 'null', 'undefined', '']:
+            qs = qs.filter(report_date__icontains=rd_str)
+
+    # 7. PACKAGE FILTER
+    package_filter = python_data.get('package_name') or python_data.get('package')
+    if package_filter not in [None, '', 'null', 'undefined', 'All', 'all']:
+        pkg_str = str(package_filter).strip()
+        if pkg_str and pkg_str.lower() not in ['all', 'null', 'undefined', '']:
+            qs = qs.filter(package__icontains=pkg_str)
+
+    # 8. CENTER FILTER
+    center_filter = python_data.get('center_name') or python_data.get('center')
+    if center_filter not in [None, '', 'null', 'undefined', 'All', 'all']:
+        ctr_str = str(center_filter).strip()
+        if ctr_str and ctr_str.lower() not in ['all', 'null', 'undefined', '']:
+            if ctr_str.isdigit():
+                qs = qs.filter(models.Q(center_id=int(ctr_str)) | models.Q(center__center_name__icontains=ctr_str))
+            else:
+                qs = qs.filter(center__center_name__icontains=ctr_str)
+
+    # 9. VENDOR FILTER
+    vendor_filter = python_data.get('vendor_name') or python_data.get('vendor')
+    if vendor_filter not in [None, '', 'null', 'undefined', 'All', 'all']:
+        vnd_str = str(vendor_filter).strip()
+        if vnd_str and vnd_str.lower() not in ['all', 'null', 'undefined', '']:
+            if vnd_str.isdigit():
+                qs = qs.filter(models.Q(vendor_id=int(vnd_str)) | models.Q(vendor__vendor_name__icontains=vnd_str))
+            else:
+                qs = qs.filter(vendor__vendor_name__icontains=vnd_str)
+
+    # 10. GENERAL SEARCH FILTER
+    search_filter = (
+        python_data.get('search') or 
+        python_data.get('search_value') or 
+        python_data.get('search_text') or 
+        python_data.get('search_filter') or
+        python_data.get('query') or
+        python_data.get('q') or
+        python_data.get('keyword')
+    )
+    if search_filter not in [None, '', 'null', 'undefined']:
+        search_val = str(search_filter).strip()
+        if search_val:
+            search_q = (
+                models.Q(hoh_employee__first_name__icontains=search_val) |
+                models.Q(hoh_employee__last_name__icontains=search_val) |
+                models.Q(hoh_employee__unique_user_id__icontains=search_val) |
+                models.Q(hoh_employee__employee_id__icontains=search_val) |
+                models.Q(hoh_employee__recruiter_name__icontains=search_val) |
+                models.Q(hoh_employee__company__icontains=search_val) |
+                models.Q(hoh_employee__personal_mobile__icontains=search_val) |
+                models.Q(hoh_employee__personal_email__icontains=search_val) |
+                models.Q(status__icontains=search_val) |
+                models.Q(package__icontains=search_val) |
+                models.Q(reason__icontains=search_val) |
+                models.Q(remark__icontains=search_val) |
+                models.Q(confirm_appointment_date__icontains=search_val) |
+                models.Q(date_of_appointment__icontains=search_val) |
+                models.Q(report_date__icontains=search_val)
+            )
+            if search_val.isdigit():
+                search_q |= models.Q(id=int(search_val)) | models.Q(hoh_employee_id=int(search_val))
+
+            words = search_val.split()
+            if len(words) > 1:
+                multi_word_q = models.Q()
+                for w in words:
+                    multi_word_q &= (
+                        models.Q(hoh_employee__first_name__icontains=w) |
+                        models.Q(hoh_employee__last_name__icontains=w) |
+                        models.Q(hoh_employee__company__icontains=w) |
+                        models.Q(hoh_employee__unique_user_id__icontains=w) |
+                        models.Q(status__icontains=w)
+                    )
+                search_q |= multi_word_q
+
+            qs = qs.filter(search_q)
+
+    return qs
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first). Supports pagination, employee search, company filter, status filter, and general search.",
+    request_body=candidate_appointment_list_schema,
+    responses={200: "List of DarwinboxCandidateAppointment records"}
+)
+@swagger_auto_schema(
+    method='get',
+    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first). Supports pagination, employee search, company filter, status filter, and general search.",
+    manual_parameters=[
+        openapi.Parameter('page_number', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER, default=1),
+        openapi.Parameter('row_size', openapi.IN_QUERY, description="Row size per page", type=openapi.TYPE_INTEGER, default=10),
+        openapi.Parameter('employee', openapi.IN_QUERY, description="Search/Filter by employee name or ID", type=openapi.TYPE_STRING),
+        openapi.Parameter('company', openapi.IN_QUERY, description="Filter/Search by company name", type=openapi.TYPE_STRING),
+        openapi.Parameter('status', openapi.IN_QUERY, description="Filter by appointment status", type=openapi.TYPE_STRING),
+        openapi.Parameter('fitness_status', openapi.IN_QUERY, description="Filter by fitness status", type=openapi.TYPE_STRING),
+        openapi.Parameter('search', openapi.IN_QUERY, description="Search term", type=openapi.TYPE_STRING),
+    ],
     responses={200: "List of DarwinboxCandidateAppointment records"}
 )
 @api_view(['GET', 'POST'])
 @csrf_exempt
 def all_darwinbox_candidate_appointment_list(request):
     if request.method in ['POST', 'GET']:
-        python_data = JSONParser().parse(io.BytesIO(request.body))
-        page_number = int(python_data.get('page_number',1))
-        row_size = int(python_data.get('row_size',10))
+        python_data = parse_candidate_appointment_request_params(request)
+
+        # Pagination parsing
+        page_val = (
+            python_data.get('page_number') or 
+            python_data.get('page') or 
+            python_data.get('pageIndex') or 
+            1
+        )
+        size_val = (
+            python_data.get('row_size') or 
+            python_data.get('page_size') or 
+            python_data.get('pageSize') or 
+            python_data.get('limit') or 
+            python_data.get('per_page') or 
+            10
+        )
+        try:
+            page_number = int(page_val)
+        except (ValueError, TypeError):
+            page_number = 1
+        try:
+            row_size = int(size_val)
+        except (ValueError, TypeError):
+            row_size = 10
+
+        if page_number < 1:
+            page_number = 1
+        if row_size < 1:
+            row_size = 10
+
         last_row = row_size * page_number
         first_row = last_row - row_size
-        
-        total_records = models.DarwinboxCandidateAppointment.objects.all().count()
-        appointments = models.DarwinboxCandidateAppointment.objects.all().order_by('-id')[first_row:last_row]
+
+        qs = build_candidate_appointment_queryset(python_data)
+        total_records = qs.count()
+        appointments = qs.order_by('-id')[first_row:last_row]
         serializer = DarwinboxCandidateAppointmentSerializer(appointments, many=True)
+
+        print(f"[all_darwinbox_candidate_appointment_list] Filters applied: {python_data}, Total records: {total_records}")
+
         res = {
             'statuscode': 200,
             'status': 'true',
             'data': serializer.data,
-            'total_records':total_records
-            
+            'total_records': total_records
         }
         json_data = JSONRenderer().render(res)
         return HttpResponse(json_data, content_type='application/json')
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_description="Export Darwinbox Candidate Appointment records to an Excel (.xlsx) spreadsheet with filters.",
+    request_body=candidate_appointment_list_schema,
+    responses={200: "Excel file download"}
+)
+@swagger_auto_schema(
+    method='get',
+    operation_description="Export Darwinbox Candidate Appointment records to an Excel (.xlsx) spreadsheet with filters.",
+    manual_parameters=[
+        openapi.Parameter('employee', openapi.IN_QUERY, description="Search/Filter by employee name or ID", type=openapi.TYPE_STRING),
+        openapi.Parameter('company', openapi.IN_QUERY, description="Filter/Search by company name", type=openapi.TYPE_STRING),
+        openapi.Parameter('status', openapi.IN_QUERY, description="Filter by appointment status", type=openapi.TYPE_STRING),
+        openapi.Parameter('fitness_status', openapi.IN_QUERY, description="Filter by fitness status", type=openapi.TYPE_STRING),
+        openapi.Parameter('confirm_appointment_date', openapi.IN_QUERY, description="Filter by appointment date", type=openapi.TYPE_STRING),
+        openapi.Parameter('report_date', openapi.IN_QUERY, description="Filter by report date", type=openapi.TYPE_STRING),
+        openapi.Parameter('package', openapi.IN_QUERY, description="Filter by package", type=openapi.TYPE_STRING),
+        openapi.Parameter('center', openapi.IN_QUERY, description="Filter by center", type=openapi.TYPE_STRING),
+        openapi.Parameter('vendor', openapi.IN_QUERY, description="Filter by vendor", type=openapi.TYPE_STRING),
+        openapi.Parameter('search', openapi.IN_QUERY, description="Search term", type=openapi.TYPE_STRING),
+    ],
+    responses={200: "Excel file download"}
+)
+@api_view(['GET', 'POST'])
+@csrf_exempt
+def darwinbox_candidate_appointment_export(request):
+    """
+    Exports Darwinbox Candidate Appointment records to an Excel (.xlsx) spreadsheet.
+    Supports all search and filter parameters (POST body or GET query params).
+    """
+    python_data = parse_candidate_appointment_request_params(request)
+    qs = build_candidate_appointment_queryset(python_data).select_related(
+        'hoh_employee', 'center', 'vendor'
+    ).order_by('-id')
+
+    headers = [
+        "Appointment ID",
+        "Candidate Name",
+        "Unique User ID",
+        "Employee ID",
+        "Company",
+        "Gender",
+        "Personal Email",
+        "Personal Mobile",
+        "Package",
+        "Center",
+        "Vendor",
+        "Type of Visit",
+        "Status",
+        "Fitness Status",
+        "Appointment Date 1",
+        "Appointment Time 1",
+        "Appointment Date 2",
+        "Appointment Time 2",
+        "Home Sample Date 1",
+        "Home Sample Time 1",
+        "Home Sample Date 2",
+        "Home Sample Time 2",
+        "Confirmed Appt Date",
+        "Confirmed Appt Time",
+        "Confirmed Home Date",
+        "Confirmed Home Time",
+        "Date of Appointment",
+        "Time Slot",
+        "Reason",
+        "Remark",
+        "Report Date",
+        "Report URL",
+        "Recruiter Name",
+        "Recruiter Mobile",
+        "Recruiter Email",
+        "Created Date",
+    ]
+
+    wb = op.Workbook()
+    ws = wb.active
+    ws.title = "Candidate Appointments"
+    ws.append(headers)
+
+    header_fill = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    for appt in qs:
+        emp = appt.hoh_employee
+        cand_name = f"{emp.first_name or ''} {emp.last_name or ''}".strip() if emp else ''
+
+        # Package name resolution
+        pkg_name = str(appt.package or '')
+        if pkg_name.isdigit():
+            try:
+                pkg_obj = models.PackageDetail.objects.filter(id=int(pkg_name)).first()
+                if pkg_obj and pkg_obj.package_name:
+                    pkg_name = pkg_obj.package_name
+            except Exception:
+                pass
+
+        # Center and Vendor names
+        ctr_name = appt.center.center_name if appt.center else ''
+        vnd_name = appt.vendor.vendor_name if appt.vendor else ''
+
+        # Type of visit resolution
+        tov = str(appt.type_of_visit or '')
+        if tov.isdigit():
+            try:
+                tov_obj = models.TypeOfVisit.objects.filter(id=int(tov)).first()
+                if tov_obj and tov_obj.type_of_visit:
+                    tov = tov_obj.type_of_visit
+            except Exception:
+                pass
+
+        # Report URL
+        report_url = ''
+        if appt.report:
+            try:
+                report_url = request.build_absolute_uri(appt.report.url)
+            except Exception:
+                base_url = getattr(settings, 'BASE_URL', '')
+                report_url = f"{base_url}{appt.report.url}"
+
+        row = [
+            appt.id,
+            cand_name,
+            emp.unique_user_id if emp else '',
+            emp.employee_id if emp else '',
+            emp.company if emp else '',
+            emp.gender if emp else '',
+            emp.personal_email if emp else '',
+            emp.personal_mobile if emp else '',
+            pkg_name,
+            ctr_name,
+            vnd_name,
+            tov,
+            appt.status or '',
+            getattr(appt, 'fitness_status', '') or '',
+            appt.appointment_date_1 or '',
+            appt.appointment_time_slot_1 or '',
+            appt.appointment_date_2 or '',
+            appt.appointment_time_slot_2 or '',
+            appt.home_sample_date_1 or '',
+            appt.home_sample_time_slot_1 or '',
+            appt.home_sample_date_2 or '',
+            appt.home_sample_time_slot_2 or '',
+            appt.confirm_appointment_date or '',
+            appt.confirm_appointment_time_slot or '',
+            appt.confirm_home_sample_date or '',
+            appt.confirm_home_sample_time_slot or '',
+            appt.date_of_appointment or '',
+            appt.time_slot or '',
+            appt.reason or '',
+            appt.remark or '',
+            appt.report_date or '',
+            report_url,
+            emp.recruiter_name if emp else '',
+            emp.recruiter_mobile if emp else '',
+            emp.recruiter_email if emp else '',
+            appt.created_at or '',
+        ]
+        ws.append(row)
+
+    # Auto-adjust column widths
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or '')) for cell in col)
+        col_letter = get_column_letter(col[0].column)
+        ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 45)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="hoh_candidate_appointment_list.xlsx"'
+    wb.save(response)
+    return response
 
 
 @swagger_auto_schema(
@@ -770,6 +1268,8 @@ def darwinbox_candidate_appointment_cancel_done(request):
                 appointment.status = 'Reports Uploaded'
                 appointment.remark = remark if remark else appointment.remark
                 appointment.report_date = report_date if report_date else str(current_date)
+                if fitness_status and hasattr(appointment, 'fitness_status'):
+                    appointment.fitness_status = fitness_status
                 appointment.save()
 
                 # Trigger Darwinbox Pre-Employment Health Checkup Status Sync Task
@@ -1007,6 +1507,9 @@ def darwinbox_candidate_appointment_report_upload(request):
                             appt_obj.report = report
                         appt_obj.remark = remark if remark else appt_obj.remark
                         appt_obj.report_date = report_date if report_date else appt_obj.report_date
+                        target_fitness = (appt_val.get('fitness_status') or appt_val.get('fitness') or appt_val.get('a6aa003de51453') or fitness_status) if isinstance(appt_val, dict) else fitness_status
+                        if target_fitness and hasattr(appt_obj, 'fitness_status'):
+                            appt_obj.fitness_status = target_fitness
                         appt_obj.save()
                         updated_appointments.append(appt_obj)
 
@@ -1068,6 +1571,8 @@ def darwinbox_candidate_appointment_report_upload(request):
                     appointment.status = 'Reports Uploaded'
                     appointment.remark = remark if remark else appointment.remark
                     appointment.report_date = report_date if report_date else str(current_date)
+                    if fitness_status and hasattr(appointment, 'fitness_status'):
+                        appointment.fitness_status = fitness_status
                     appointment.save()
 
                     darwinbox_sync_result = upload_darwinbox_candidate_report_to_api(
