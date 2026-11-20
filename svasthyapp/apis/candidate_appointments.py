@@ -603,28 +603,6 @@ candidate_appointment_list_schema = openapi.Schema(
 )
 
 
-@swagger_auto_schema(
-    method='post',
-    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first). Supports pagination, employee search, company filter, status filter, and general search.",
-    request_body=candidate_appointment_list_schema,
-    responses={200: "List of DarwinboxCandidateAppointment records"}
-)
-@swagger_auto_schema(
-    method='get',
-    operation_description="Get list of all Darwinbox candidate appointments (ordered by newest first). Supports pagination, employee search, company filter, status filter, and general search.",
-    manual_parameters=[
-        openapi.Parameter('page_number', openapi.IN_QUERY, description="Page number", type=openapi.TYPE_INTEGER, default=1),
-        openapi.Parameter('row_size', openapi.IN_QUERY, description="Row size per page", type=openapi.TYPE_INTEGER, default=10),
-        openapi.Parameter('employee', openapi.IN_QUERY, description="Search/Filter by employee name or ID", type=openapi.TYPE_STRING),
-        openapi.Parameter('company', openapi.IN_QUERY, description="Filter/Search by company name", type=openapi.TYPE_STRING),
-        openapi.Parameter('status', openapi.IN_QUERY, description="Filter by appointment status", type=openapi.TYPE_STRING),
-        openapi.Parameter('fitness_status', openapi.IN_QUERY, description="Filter by fitness status", type=openapi.TYPE_STRING),
-        openapi.Parameter('search', openapi.IN_QUERY, description="Search term", type=openapi.TYPE_STRING),
-    ],
-    responses={200: "List of DarwinboxCandidateAppointment records"}
-)
-@api_view(['GET', 'POST'])
-@csrf_exempt
 def parse_candidate_appointment_request_params(request):
     """Extract and sanitize query/body parameters from DRF request."""
     python_data = {}
